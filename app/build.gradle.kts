@@ -10,8 +10,8 @@ android {
         applicationId = "com.hper.qqbot"
         minSdk = 26
         targetSdk = 34
-        versionCode = 4
-        versionName = "2.2.0"
+        versionCode = 6
+        versionName = "3.3.0"
     }
 
     signingConfigs {
@@ -44,5 +44,5 @@ dependencies {
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.constraintlayout:constraintlayout:2.2.1")
     implementation("androidx.coordinatorlayout:coordinatorlayout:1.2.0")
-    implementation("androidx.core:core-ktx:1.13.1")
+    implementation("org.apache.commons:commons-compress:1.27.1")
 }

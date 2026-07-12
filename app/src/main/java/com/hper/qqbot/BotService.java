@@ -126,14 +126,7 @@ public class BotService extends Service {
             appendLog("📦 解压中...");
             new File(runtimeDir).mkdirs();
 
-            // 使用 ProcessBuilder 解压 tar
-            List<String> cmd = Arrays.asList("tar", "-xzf", zipFile.getAbsolutePath(), "-C", runtimeDir);
-            ProcessBuilder pb = new ProcessBuilder(cmd);
-            pb.redirectErrorStream(true);
-            java.lang.Process p = pb.start();
-            BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream()));
-            while (r.readLine() != null) {}
-            p.waitFor();
+            TarUtils.extractTarGz(zipFile, new File(runtimeDir));
             zipFile.delete();
 
             new File(runtimeDir, "dotnet").setExecutable(true);
@@ -181,7 +174,7 @@ public class BotService extends Service {
         cmd.add(dotnetBin);
         cmd.add("Lagrange.Milky.dll");
 
-        ProcessBuilder pb = new ProcessBuilder(cmd);
+        // extraction done
         pb.directory(new File(lagrangeDir));
         Map<String, String> env = pb.environment();
         env.put("DOTNET_ROOT", runtimeDir);
@@ -189,7 +182,7 @@ public class BotService extends Service {
         env.put("LD_LIBRARY_PATH", libPath);
         env.put("PATH", runtimeDir + "/bin:" + System.getenv("PATH"));
 
-        pb.redirectErrorStream(true);
+        // removed
         lagrangeProcess = pb.start();
 
         new Thread(() -> {
