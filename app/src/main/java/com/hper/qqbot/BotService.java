@@ -1,4 +1,3 @@
-import java.lang.Process;
 package com.hper.qqbot;
 
 import android.app.*;
@@ -17,7 +16,7 @@ public class BotService extends Service {
     private static final String CHANNEL_ID = "bot_channel";
     private static final int NOTIFICATION_ID = 1;
 
-    private Process lagrangeProcess;
+    private java.lang.Process lagrangeProcess;
     private final ExecutorService executor = Executors.newFixedThreadPool(2);
     private final StringBuilder logBuffer = new StringBuilder();
     private static final int MAX_LOG_LINES = 500;
@@ -141,7 +140,7 @@ public class BotService extends Service {
             String cmd = "tar -xzf '" + zipFile.getAbsolutePath() + "' -C '" + runtimeDir + "'";
             ProcessBuilder pb = new ProcessBuilder("/system/bin/sh", "-c", cmd);
             pb.redirectErrorStream(true);
-            Process p = pb.start();
+            java.lang.Process p = pb.start();
             BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
             while (reader.readLine() != null) {}
             p.waitFor();
