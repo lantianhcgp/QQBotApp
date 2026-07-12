@@ -20,7 +20,6 @@
         <item name="colorSurfaceVariant">@color/md_theme_surfaceVariant</item>
         <item name="colorOnSurfaceVariant">@color/md_theme_onSurfaceVariant</item>
         <item name="colorOutline">@color/md_theme_outline</item>
-        <item name="android:colorBackground">@color/md_theme_background</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">true</item>
