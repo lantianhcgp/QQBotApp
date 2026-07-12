@@ -20,11 +20,60 @@
             android:textColor="?attr/colorOnSurface"
             android:layout_marginBottom="24dp"/>
 
+        <!-- QQ 配置 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="QQ 配置"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="?attr/colorPrimary"
+            android:layout_marginBottom="16dp"/>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="QQ 号码"
+            android:layout_marginBottom="16dp"
+            app:boxCornerRadiusTopStart="12dp"
+            app:boxCornerRadiusTopEnd="12dp"
+            app:boxCornerRadiusBottomStart="12dp"
+            app:boxCornerRadiusBottomEnd="12dp"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etQQ"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number"
+                android:textSize="16sp"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Sign Token"
+            android:layout_marginBottom="24dp"
+            app:passwordToggleEnabled="true"
+            app:boxCornerRadiusTopStart="12dp"
+            app:boxCornerRadiusTopEnd="12dp"
+            app:boxCornerRadiusBottomStart="12dp"
+            app:boxCornerRadiusBottomEnd="12dp"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etSignToken"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textPassword"
+                android:textSize="16sp"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
         <!-- API 配置 -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="API 配置"
+            android:text="LLM API 配置"
             android:textSize="18sp"
             android:textStyle="bold"
             android:textColor="?attr/colorPrimary"
@@ -46,8 +95,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="textUri"
-                android:textSize="16sp"
-                android:text="https://api.stepfun.com/step_plan/v1/chat/completions"/>
+                android:textSize="16sp"/>
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
@@ -157,7 +205,6 @@
                     android:id="@+id/tvDataDir"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="/storage/emulated/0/QQBotData"
                     android:textSize="14sp"
                     android:textColor="?attr/colorOnSurfaceVariant"
                     android:layout_marginTop="8dp"
@@ -190,7 +237,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="QQ Bot v2.0.0"
+                    android:text="QQ Bot v2.1.0"
                     android:textSize="14sp"
                     android:textColor="?attr/colorOnSurfaceVariant"
                     android:layout_marginTop="8dp"/>

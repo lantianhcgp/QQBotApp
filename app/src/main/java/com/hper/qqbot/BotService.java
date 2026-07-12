@@ -2,6 +2,7 @@ package com.hper.qqbot;
 
 import android.app.*;
 import android.content.*;
+import android.content.res.AssetManager;
 import android.os.*;
 import android.util.Log;
 import androidx.core.app.NotificationCompat;
@@ -22,8 +23,9 @@ public class BotService extends Service {
     private static final int MAX_LOG_LINES = 500;
     private boolean isRunning = false;
 
-    private String workDir;
+    private String dataDir;
     private String runtimeDir;
+    private String lagrangeDir;
 
     private String llmUrl = "https://api.stepfun.com/step_plan/v1/chat/completions";
     private String llmKey = "";
@@ -41,10 +43,12 @@ public class BotService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        workDir = Environment.getExternalStorageDirectory().getAbsolutePath() + "/QQBotData";
-        runtimeDir = new File(getFilesDir(), "runtime").getAbsolutePath();
-        new File(workDir).mkdirs();
-        new File(workDir + "/lagrange").mkdirs();
+        // 使用内部存储，避免 scoped storage 权限问题
+        dataDir = getFilesDir().getAbsolutePath();
+        runtimeDir = dataDir + "/runtime";
+        lagrangeDir = dataDir + "/lagrange";
+        new File(runtimeDir).mkdirs();
+        new File(lagrangeDir).mkdirs();
         createNotificationChannel();
         loadSettings();
     }
@@ -85,16 +89,32 @@ public class BotService extends Service {
         executor.execute(() -> {
             try {
                 appendLog("🚀 正在启动服务...");
-                appendLog("📂 数据目录: " + workDir);
+                appendLog("📂 数据目录: " + dataDir);
 
+                // 1. 解压 .NET 运行时
                 if (!ensureDotnet()) {
                     appendLog("❌ .NET 运行时初始化失败");
                     isRunning = false;
                     return;
                 }
 
+                // 2. 部署 Lagrange 文件
+                if (!ensureLagrange()) {
+                    appendLog("❌ Lagrange 部署失败");
+                    isRunning = false;
+                    return;
+                }
+
+                // 3. 写入配置文件
+                writeLagrangeConfig();
+
+                // 4. 启动 Lagrange
                 startLagrange();
+
+                // 5. 等待 Lagrange 启动
                 Thread.sleep(5000);
+
+                // 6. 启动 Java AI Bot
                 startJavaBot();
 
                 appendLog("✅ 所有服务已启动");
@@ -108,8 +128,9 @@ public class BotService extends Service {
     }
 
     private boolean ensureDotnet() {
-        String marker = runtimeDir + "/.dotnet_ready";
-        if (new File(marker).exists()) {
+        File dotnetFile = new File(runtimeDir, "dotnet");
+        if (dotnetFile.exists() && dotnetFile.length() > 0) {
+            dotnetFile.setExecutable(true, true);
             appendLog("✅ .NET 运行时已就绪");
             return true;
         }
@@ -124,74 +145,145 @@ public class BotService extends Service {
             appendLog("✅ 下载完成");
 
             appendLog("📦 解压中...");
-            new File(runtimeDir).mkdirs();
-
             TarUtils.extractTarGz(zipFile, new File(runtimeDir));
             zipFile.delete();
 
-            // Debug: check what was extracted
-            File dotnetFile = new File(runtimeDir, "dotnet");
-            appendLog("📦 解压后检查: dotnet 文件存在=" + dotnetFile.exists() + ", 可执行=" + dotnetFile.canExecute() + ", 大小=" + dotnetFile.length());
-            File[] files = new File(runtimeDir).listFiles();
-            if (files != null) {
-                for (File f2 : files) appendLog("  📄 " + f2.getName() + " (" + f2.length() + " bytes)");
+            // 验证解压结果
+            File check = new File(runtimeDir, "dotnet");
+            appendLog("📦 验证: dotnet 存在=" + check.exists() + " 大小=" + check.length());
+            if (!check.exists() || check.length() == 0) {
+                appendLog("❌ dotnet 文件不存在或为空");
+                return false;
             }
 
-            new File(runtimeDir, "dotnet").setExecutable(true);
-            new File(marker).createNewFile();
+            check.setExecutable(true, true);
             appendLog("✅ .NET 运行时就绪");
             return true;
         } catch (Exception e) {
-            appendLog("❌ 下载失败: " + e.getMessage());
+            appendLog("❌ .NET 运行时初始化失败: " + e.getMessage());
+            Log.e(TAG, "ensureDotnet failed", e);
             return false;
         }
     }
 
-    private void downloadFile(String urlStr, File dest) throws IOException {
-        URL url = new URL(urlStr);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setConnectTimeout(30000);
-        conn.setReadTimeout(120000);
-        conn.setRequestProperty("User-Agent", "QQBot/1.0");
-        int totalLen = conn.getContentLength();
-        InputStream is = conn.getInputStream();
-        FileOutputStream fos = new FileOutputStream(dest);
-        byte[] buf = new byte[8192];
-        int len, downloaded = 0;
-        while ((len = is.read(buf)) > 0) {
-            fos.write(buf, 0, len);
-            downloaded += len;
-            if (totalLen > 0) {
-                int pct = (int)((long) downloaded * 100 / totalLen);
-                if (pct % 20 == 0) appendLog("⬇️ 下载进度: " + pct + "%");
-            }
+    private boolean ensureLagrange() {
+        // 检查 Lagrange.DLL 是否已部署
+        File checkFile = new File(lagrangeDir, "Lagrange.Milky.dll");
+        if (checkFile.exists() && checkFile.length() > 0) {
+            appendLog("✅ Lagrange 已部署");
+            return true;
         }
-        fos.close();
-        is.close();
+
+        appendLog("📦 首次部署 Lagrange 文件...");
+
+        try {
+            AssetManager am = getAssets();
+            String[] files = am.list("lagrange");
+            if (files == null || files.length == 0) {
+                appendLog("❌ assets/lagrange 目录为空");
+                return false;
+            }
+
+            int count = 0;
+            for (String fileName : files) {
+                InputStream is = am.open("lagrange/" + fileName);
+                File outFile = new File(lagrangeDir, fileName);
+                FileOutputStream fos = new FileOutputStream(outFile);
+                byte[] buf = new byte[8192];
+                int len;
+                while ((len = is.read(buf)) > 0) fos.write(buf, 0, len);
+                fos.close();
+                is.close();
+                count++;
+            }
+
+            appendLog("✅ Lagrange 部署完成 (" + count + " 个文件)");
+            return true;
+        } catch (Exception e) {
+            appendLog("❌ Lagrange 部署失败: " + e.getMessage());
+            Log.e(TAG, "ensureLagrange failed", e);
+            return false;
+        }
+    }
+
+    private void writeLagrangeConfig() {
+        try {
+            // 读取已保存的 QQ 号和 sign token
+            SharedPreferences prefs = getSharedPreferences("bot_settings", MODE_PRIVATE);
+            String qqNumber = prefs.getString("qq_number", "3255201290");
+            String signToken = prefs.getString("sign_token", "456f7527-34d0-4a24-8860-74d77021a90e");
+            int httpPort = prefs.getInt("http_port", 3000);
+
+            String config = "{\n" +
+                "  \"QQ\": " + qqNumber + ",\n" +
+                "  \"SignToken\": \"" + signToken + "\",\n" +
+                "  \"LogLevel\": \"Information\",\n" +
+                "  \"HttpServer\": {\n" +
+                "    \"Host\": \"127.0.0.1\",\n" +
+                "    \"Port\": " + httpPort + ",\n" +
+                "    \"AccessToken\": \"\"\n" +
+                "  },\n" +
+                "  \"ServiceEndpoints\": {\n" +
+                "    \"OpcodeService\": {\n" +
+                "      \"Uri\": \"https://pb.qsign.hlb0.cn\"\n" +
+                "    },\n" +
+                "    \"SignServer\": {\n" +
+                "      \"Uri\": \"https://pb.qsign.hlb0.cn\"\n" +
+                "    }\n" +
+                "  }\n" +
+                "}";
+
+            File configFile = new File(lagrangeDir, "appsettings.jsonc");
+            FileOutputStream fos = new FileOutputStream(configFile);
+            fos.write(config.getBytes());
+            fos.close();
+            appendLog("✅ 配置文件已写入");
+        } catch (Exception e) {
+            appendLog("⚠️ 写入配置失败: " + e.getMessage());
+        }
     }
 
     private void startLagrange() throws IOException {
-        String lagrangeDir = workDir + "/lagrange";
         appendLog("📦 启动 Lagrange.Milky...");
 
         String dotnetBin = runtimeDir + "/dotnet";
-        String libPath = runtimeDir + "/shared/Microsoft.NETCore.App/8.0.19";
+        String dllPath = lagrangeDir + "/Lagrange.Milky.dll";
 
-        // 直接用 ProcessBuilder 调用 dotnet，不依赖 shell
+        // 验证文件存在
+        File dotnetFile = new File(dotnetBin);
+        File dllFile = new File(dllPath);
+        if (!dotnetFile.exists()) {
+            throw new IOException("dotnet 不存在: " + dotnetBin);
+        }
+        if (!dllFile.exists()) {
+            throw new IOException("Lagrange.Milky.dll 不存在: " + dllPath);
+        }
+
         List<String> cmd = new ArrayList<>();
         cmd.add(dotnetBin);
-        cmd.add("Lagrange.Milky.dll");
+        cmd.add(dllPath);
 
         ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.directory(new File(lagrangeDir));
+        pb.redirectErrorStream(true);
+
         Map<String, String> env = pb.environment();
         env.put("DOTNET_ROOT", runtimeDir);
-        env.put("HOME", workDir);
+        env.put("HOME", dataDir);
+
+        // 设置 LD_LIBRARY_PATH 包含 runtime 共享库
+        String libPath = runtimeDir;
+        File nativeDir = new File(runtimeDir, "native");
+        if (nativeDir.exists()) libPath = nativeDir.getAbsolutePath() + ":" + libPath;
         env.put("LD_LIBRARY_PATH", libPath);
-        env.put("PATH", runtimeDir + "/bin:" + System.getenv("PATH"));
+        env.put("PATH", runtimeDir + ":" + System.getenv("PATH"));
+
+        appendLog("🔗 命令: " + dotnetBin + " " + dllPath);
+        appendLog("🔗 工作目录: " + lagrangeDir);
 
         lagrangeProcess = pb.start();
 
+        // 读取 Lagrange 输出
         new Thread(() -> {
             try {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(lagrangeProcess.getInputStream()));
@@ -199,7 +291,20 @@ public class BotService extends Service {
                 while ((line = reader.readLine()) != null) {
                     appendLog("[Lagrange] " + line);
                 }
-            } catch (IOException e) {}
+            } catch (IOException e) {
+                appendLog("[Lagrange] 读取输出失败: " + e.getMessage());
+            }
+        }).start();
+
+        // 检查进程是否立即退出
+        new Thread(() -> {
+            try {
+                int exitCode = lagrangeProcess.waitFor();
+                appendLog("[Lagrange] 进程退出，代码: " + exitCode);
+                isRunning = false;
+            } catch (InterruptedException e) {
+                // 正常中断
+            }
         }).start();
     }
 
@@ -340,7 +445,8 @@ public class BotService extends Service {
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("POST");
         conn.setRequestProperty("Content-Type", "application/json");
-        if (bearerToken != null) conn.setRequestProperty("Authorization", "Bearer " + bearerToken);
+        if (bearerToken != null && !bearerToken.isEmpty())
+            conn.setRequestProperty("Authorization", "Bearer " + bearerToken);
         conn.setDoOutput(true);
         conn.setConnectTimeout(30000);
         conn.setReadTimeout(60000);
@@ -353,24 +459,59 @@ public class BotService extends Service {
         return sb.toString();
     }
 
+    private void downloadFile(String urlStr, File dest) throws IOException {
+        URL url = new URL(urlStr);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setConnectTimeout(30000);
+        conn.setReadTimeout(120000);
+        conn.setRequestProperty("User-Agent", "QQBot/1.0");
+        int totalLen = conn.getContentLength();
+        InputStream is = conn.getInputStream();
+        FileOutputStream fos = new FileOutputStream(dest);
+        byte[] buf = new byte[8192];
+        int len, downloaded = 0;
+        int lastPct = -1;
+        while ((len = is.read(buf)) > 0) {
+            fos.write(buf, 0, len);
+            downloaded += len;
+            if (totalLen > 0) {
+                int pct = (int)((long) downloaded * 100 / totalLen);
+                if (pct / 10 > lastPct / 10) {
+                    appendLog("⬇️ 下载进度: " + pct + "%");
+                    lastPct = pct;
+                }
+            }
+        }
+        fos.close();
+        is.close();
+    }
+
     private void stopAll() {
         isRunning = false;
         appendLog("🛑 正在停止服务...");
-        if (lagrangeProcess != null) { lagrangeProcess.destroyForcibly(); lagrangeProcess = null; }
-        if (webhookServer != null) { webhookServer.stop(); webhookServer = null; }
+        if (lagrangeProcess != null) {
+            lagrangeProcess.destroyForcibly();
+            lagrangeProcess = null;
+        }
+        if (webhookServer != null) {
+            webhookServer.stop();
+            webhookServer = null;
+        }
         appendLog("✅ 服务已停止");
     }
 
     private void appendLog(String line) {
         logBuffer.append(line).append("\n");
-        if (logBuffer.length() > MAX_LOG_LINES * 100) logBuffer.delete(0, logBuffer.length() - MAX_LOG_LINES * 50);
+        if (logBuffer.length() > MAX_LOG_LINES * 100)
+            logBuffer.delete(0, logBuffer.length() - MAX_LOG_LINES * 50);
         Intent intent = new Intent("com.hper.qqbot.LOG_UPDATE");
         intent.putExtra(EXTRA_LOG, logBuffer.toString());
         sendBroadcast(intent);
     }
 
     private void createNotificationChannel() {
-        NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "Bot Service", NotificationManager.IMPORTANCE_LOW);
+        NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "Bot Service",
+            NotificationManager.IMPORTANCE_LOW);
         getSystemService(NotificationManager.class).createNotificationChannel(channel);
     }
 
