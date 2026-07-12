@@ -5,88 +5,54 @@ import android.app.Activity;
 import android.content.*;
 import android.content.pm.PackageManager;
 import android.os.*;
-import android.text.method.ScrollingMovementMethod;
 import android.view.*;
-import android.widget.*;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.fragment.app.*;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.appbar.MaterialToolbar;
 
-public class MainActivity extends Activity {
-    private TextView logView;
-    private Button btnStart, btnStop;
-    private boolean isRunning = false;
-    private StringBuilder logBuffer = new StringBuilder();
-
-    private final BroadcastReceiver logReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String log = intent.getStringExtra(BotService.EXTRA_LOG);
-            if (log != null) {
-                runOnUiThread(() -> {
-                    logBuffer.setLength(0);
-                    logBuffer.append(log);
-                    logView.setText(logBuffer.toString());
-                    ScrollView sv = (ScrollView) logView.getParent();
-                    sv.fullScroll(View.FOCUS_DOWN);
-                });
-            }
-        }
-    };
+public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        logView = findViewById(R.id.logView);
-        btnStart = findViewById(R.id.btnStart);
-        btnStop = findViewById(R.id.btnStop);
-        logView.setMovementMethod(new ScrollingMovementMethod());
+        // Edge-to-edge
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            getWindow().setDecorFitsSystemWindows(false);
+        }
 
-        btnStart.setOnClickListener(v -> startBot());
-        btnStop.setOnClickListener(v -> stopBot());
+        MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
 
-        btnStop.setEnabled(false);
+        BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
+        bottomNav.setOnItemSelectedListener(item -> {
+            Fragment fragment;
+            int id = item.getItemId();
+            if (id == R.id.nav_dashboard) {
+                fragment = new DashboardFragment();
+            } else if (id == R.id.nav_logs) {
+                fragment = new LogsFragment();
+            } else if (id == R.id.nav_settings) {
+                fragment = new SettingsFragment();
+            } else {
+                return false;
+            }
+            getSupportFragmentManager().beginTransaction()
+                .replace(R.id.fragment_container, fragment)
+                .commit();
+            return true;
+        });
+
+        // 默认显示控制台
+        if (savedInstanceState == null) {
+            bottomNav.setSelectedItemId(R.id.nav_dashboard);
+        }
+
         requestPermissions();
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        registerReceiver(logReceiver, new IntentFilter("com.hper.qqbot.LOG_UPDATE"), RECEIVER_NOT_EXPORTED);
-        refreshLog();
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        unregisterReceiver(logReceiver);
-    }
-
-    private void startBot() {
-        Intent intent = new Intent(this, BotService.class);
-        intent.setAction(BotService.ACTION_START);
-        ContextCompat.startForegroundService(this, intent);
-
-        isRunning = true;
-        btnStart.setEnabled(false);
-        btnStop.setEnabled(true);
-    }
-
-    private void stopBot() {
-        Intent intent = new Intent(this, BotService.class);
-        intent.setAction(BotService.ACTION_STOP);
-        startService(intent);
-
-        isRunning = false;
-        btnStart.setEnabled(true);
-        btnStop.setEnabled(false);
-    }
-
-    private void refreshLog() {
-        Intent intent = new Intent(this, BotService.class);
-        intent.setAction(BotService.ACTION_GET_LOG);
-        startService(intent);
     }
 
     private void requestPermissions() {

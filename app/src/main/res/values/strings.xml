@@ -1,3 +1,51 @@
 <resources>
     <string name="app_name">QQ Bot</string>
+
+    <!-- Navigation -->
+    <string name="nav_dashboard">控制台</string>
+    <string name="nav_logs">日志</string>
+    <string name="nav_settings">设置</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_title">服务控制</string>
+    <string name="status_running">运行中</string>
+    <string name="status_stopped">已停止</string>
+    <string name="status_starting">启动中…</string>
+    <string name="status_initializing">初始化中…</string>
+
+    <string name="btn_start">启动服务</string>
+    <string name="btn_stop">停止服务</string>
+    <string name="btn_restart">重启服务</string>
+
+    <!-- Info cards -->
+    <string name="card_lagrange">Lagrange.Milky</string>
+    <string name="card_lagrange_desc">QQ 协议端</string>
+    <string name="card_aibot">AI Bot</string>
+    <string name="card_aibot_desc">智能对话引擎</string>
+    <string name="card_exa">Exa Search</string>
+    <string name="card_exa_desc">联网搜索能力</string>
+
+    <!-- Logs -->
+    <string name="logs_title">运行日志</string>
+    <string name="logs_empty">等待启动…</string>
+    <string name="logs_clear">清除日志</string>
+
+    <!-- Settings -->
+    <string name="settings_title">设置</string>
+    <string name="settings_api">API 配置</string>
+    <string name="settings_llm_url">LLM API 地址</string>
+    <string name="settings_llm_key">LLM API Key</string>
+    <string name="settings_llm_model">模型名称</string>
+    <string name="settings_prompt">系统提示词</string>
+    <string name="settings_files">文件管理</string>
+    <string name="settings_data_dir">数据目录</string>
+    <string name="settings_about">关于</string>
+    <string name="settings_version">版本 1.0.0</string>
+
+    <!-- Setup -->
+    <string name="setup_title">欢迎使用 QQ Bot</string>
+    <string name="setup_desc">首次使用需要下载运行时环境\n请确保设备已连接网络</string>
+    <string name="setup_download">下载运行时</string>
+    <string name="setup_progress">下载中… %d%%</string>
+    <string name="setup_complete">初始化完成！</string>
 </resources>

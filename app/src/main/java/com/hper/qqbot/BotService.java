@@ -6,7 +6,9 @@ import android.os.*;
 import android.util.Log;
 import androidx.core.app.NotificationCompat;
 import java.io.*;
+import java.net.*;
 import java.util.concurrent.*;
+import java.util.zip.*;
 
 public class BotService extends Service {
     private static final String TAG = "BotService";
@@ -20,59 +22,24 @@ public class BotService extends Service {
     private static final int MAX_LOG_LINES = 500;
     private boolean isRunning = false;
 
-    private String homeDir;
-    private String termuxHome;
-    private String termuxBin;
-    private String shell;
-    private String dotnet;
-    private String python;
+    private String runtimeDir;
+    private String workDir;
 
     public static final String ACTION_START = "com.hper.qqbot.START";
     public static final String ACTION_STOP = "com.hper.qqbot.STOP";
     public static final String ACTION_GET_LOG = "com.hper.qqbot.GET_LOG";
     public static final String EXTRA_LOG = "log";
 
-    private void detectTermux() {
-        termuxHome = "/data/data/com.termux/files/home";
-        termuxBin = "/data/data/com.termux/files/usr/bin";
-
-        // 检测 shell
-        String[] shellPaths = {
-            termuxBin + "/sh",
-            "/data/data/com.termux/files/usr/bin/sh",
-            "/system/bin/sh"
-        };
-        shell = "sh";
-        for (String p : shellPaths) {
-            if (new File(p).exists()) { shell = p; break; }
-        }
-
-        // 检测 dotnet
-        String[] dotnetPaths = {
-            termuxBin + "/dotnet",
-            "/data/data/com.termux/files/usr/lib/dotnet/dotnet"
-        };
-        dotnet = "dotnet";
-        for (String p : dotnetPaths) {
-            if (new File(p).exists()) { dotnet = p; break; }
-        }
-
-        // 检测 python
-        String[] pythonPaths = {
-            termuxBin + "/python3",
-            "/data/data/com.termux/files/usr/bin/python3"
-        };
-        python = "python3";
-        for (String p : pythonPaths) {
-            if (new File(p).exists()) { python = p; break; }
-        }
-    }
+    private static final String RUNTIME_MANIFEST = "https://raw.githubusercontent.com/lantianhcgp/QQBotApp/main/runtime/manifest.json";
 
     @Override
     public void onCreate() {
         super.onCreate();
-        homeDir = Environment.getExternalStorageDirectory().getAbsolutePath();
-        detectTermux();
+        runtimeDir = new File(getFilesDir(), "runtime").getAbsolutePath();
+        workDir = Environment.getExternalStorageDirectory().getAbsolutePath() + "/QQBotData";
+        new File(runtimeDir).mkdirs();
+        new File(workDir).mkdirs();
+        new File(workDir + "/lagrange").mkdirs();
         createNotificationChannel();
     }
 
@@ -92,8 +59,7 @@ public class BotService extends Service {
                 return START_NOT_STICKY;
             }
         }
-
-        startForeground(NOTIFICATION_ID, buildNotification("Bot 正在运行..."));
+        startForeground(NOTIFICATION_ID, buildNotification("Bot 正在启动..."));
         startBot();
         return START_STICKY;
     }
@@ -105,18 +71,25 @@ public class BotService extends Service {
         executor.execute(() -> {
             try {
                 appendLog("🚀 正在启动服务...");
-                appendLog("📂 数据目录: " + homeDir + "/QQBotData");
+                appendLog("📂 数据目录: " + workDir);
+
+                if (!ensureRuntime()) {
+                    appendLog("❌ 运行时初始化失败，请检查网络连接");
+                    isRunning = false;
+                    return;
+                }
+
+                String shell = runtimeDir + "/bin/sh";
+                String dotnet = runtimeDir + "/dotnet";
+                String python = runtimeDir + "/bin/python3";
+
                 appendLog("🔗 Shell: " + shell);
                 appendLog("🔗 Dotnet: " + dotnet);
                 appendLog("🔗 Python: " + python);
-                appendLog("🔗 Termux Home: " + termuxHome);
 
-                // 创建目录
-                new File(homeDir + "/QQBotData/lagrange").mkdirs();
-
-                startLagrange();
+                startLagrange(shell, dotnet);
                 Thread.sleep(6000);
-                startAiBot();
+                startAiBot(shell, python);
                 appendLog("✅ 所有服务已启动");
                 updateNotification("Bot 运行中");
             } catch (Exception e) {
@@ -127,48 +100,136 @@ public class BotService extends Service {
         });
     }
 
-    private void startLagrange() throws IOException {
-        String lagrangeDir = homeDir + "/QQBotData/lagrange";
+    private boolean ensureRuntime() {
+        String marker = runtimeDir + "/.initialized";
+        if (new File(marker).exists()) {
+            appendLog("✅ 运行时已就绪");
+            return true;
+        }
+
+        appendLog("📦 首次启动，正在初始化运行时...");
+        appendLog("⚠️ 请确保设备已连接网络");
+
+        try {
+            String zipUrl = getRuntimeUrl();
+            File zipFile = new File(getCacheDir(), "runtime.zip");
+            appendLog("⬇️ 下载运行时...");
+            downloadFile(zipUrl, zipFile);
+            appendLog("✅ 下载完成 (" + (zipFile.length() / 1024 / 1024) + "MB)");
+
+            appendLog("📦 解压运行时...");
+            unzip(zipFile, runtimeDir);
+            zipFile.delete();
+
+            new File(runtimeDir + "/bin/sh").setExecutable(true);
+            new File(runtimeDir + "/bin/python3").setExecutable(true);
+            new File(runtimeDir + "/dotnet").setExecutable(true);
+
+            new File(marker).createNewFile();
+            appendLog("✅ 运行时初始化完成");
+            return true;
+        } catch (Exception e) {
+            appendLog("❌ 运行时初始化失败: " + e.getMessage());
+            Log.e(TAG, "Runtime init failed", e);
+            return false;
+        }
+    }
+
+    private String getRuntimeUrl() {
+        try {
+            URL url = new URL(RUNTIME_MANIFEST);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setConnectTimeout(10000);
+            conn.setReadTimeout(10000);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) sb.append(line);
+            reader.close();
+            String json = sb.toString();
+            int idx = json.indexOf("\"url\"");
+            if (idx > 0) {
+                int start = json.indexOf("\"", idx + 5) + 1;
+                int end = json.indexOf("\"", start);
+                return json.substring(start, end);
+            }
+        } catch (Exception e) {
+            appendLog("⚠️ 无法获取 manifest，使用默认地址");
+        }
+        return "https://github.com/nicokosi/dotnet-runtime-aarch64-android/releases/download/v8.0.0/runtime.zip";
+    }
+
+    private void downloadFile(String urlStr, File dest) throws IOException {
+        URL url = new URL(urlStr);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setConnectTimeout(30000);
+        conn.setReadTimeout(120000);
+        conn.setRequestProperty("User-Agent", "QQBot/1.0");
+
+        int totalLen = conn.getContentLength();
+        InputStream is = conn.getInputStream();
+        FileOutputStream fos = new FileOutputStream(dest);
+
+        byte[] buf = new byte[8192];
+        int len, downloaded = 0;
+        while ((len = is.read(buf)) > 0) {
+            fos.write(buf, 0, len);
+            downloaded += len;
+            if (totalLen > 0) {
+                int pct = downloaded * 100 / totalLen;
+                if (pct % 10 == 0) appendLog("⬇️ 下载进度: " + pct + "%");
+            }
+        }
+        fos.close();
+        is.close();
+    }
+
+    private void unzip(File zipFile, String targetDir) throws IOException {
+        ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFile));
+        ZipEntry entry;
+        byte[] buf = new byte[8192];
+        int count = 0;
+        while ((entry = zis.getNextEntry()) != null) {
+            File out = new File(targetDir, entry.getName());
+            if (entry.isDirectory()) {
+                out.mkdirs();
+            } else {
+                out.getParentFile().mkdirs();
+                FileOutputStream fos = new FileOutputStream(out);
+                int len;
+                while ((len = zis.read(buf)) > 0) fos.write(buf, 0, len);
+                fos.close();
+            }
+            zis.closeEntry();
+            count++;
+            if (count % 100 == 0) appendLog("📦 已解压 " + count + " 个文件...");
+        }
+        zis.close();
+        appendLog("📦 共解压 " + count + " 个文件");
+    }
+
+    private void startLagrange(String shell, String dotnet) throws IOException {
+        String lagrangeDir = workDir + "/lagrange";
         appendLog("📦 启动 Lagrange.Milky...");
-
-        // 设置 TERMUX 环境变量
-        String envSetup = "export HOME='" + termuxHome + "' && " +
-            "export PATH='" + termuxBin + ":$PATH' && " +
-            "export LD_LIBRARY_PATH='" + termuxBin + "/../lib:$LD_LIBRARY_PATH' && ";
-
-        String cmd = envSetup + "cd '" + lagrangeDir + "' && '" + dotnet + "' Lagrange.Milky.dll 2>&1";
-
+        String cmd = "export HOME='" + workDir + "' && " +
+            "export LD_LIBRARY_PATH='" + runtimeDir + "/lib:$LD_LIBRARY_PATH' && " +
+            "cd '" + lagrangeDir + "' && " +
+            "'" + dotnet + "' Lagrange.Milky.dll 2>&1";
         lagrangeProcess = ShellExecutor.exec(cmd, lagrangeDir, shell, new ShellExecutor.OutputCallback() {
-            @Override
-            public void onOutput(String line) {
-                appendLog("[Lagrange] " + line);
-            }
-            @Override
-            public void onDone(int exitCode) {
-                appendLog("[Lagrange] 进程退出 code=" + exitCode);
-            }
+            @Override public void onOutput(String line) { appendLog("[Lagrange] " + line); }
+            @Override public void onDone(int exitCode) { appendLog("[Lagrange] 退出 code=" + exitCode); }
         });
     }
 
-    private void startAiBot() throws IOException {
-        String botScript = homeDir + "/QQBotData/lagrange-ai-bot.py";
-        String workDir = homeDir + "/QQBotData";
+    private void startAiBot(String shell, String python) throws IOException {
+        String botScript = workDir + "/lagrange-ai-bot.py";
         appendLog("🤖 启动 AI Bot...");
-
-        String envSetup = "export HOME='" + termuxHome + "' && " +
-            "export PATH='" + termuxBin + ":$PATH' && ";
-
-        String cmd = envSetup + "cd '" + workDir + "' && '" + python + "' -u '" + botScript + "' 2>&1";
-
+        String cmd = "export HOME='" + workDir + "' && " +
+            "cd '" + workDir + "' && " +
+            "'" + python + "' -u '" + botScript + "' 2>&1";
         aiBotProcess = ShellExecutor.exec(cmd, workDir, shell, new ShellExecutor.OutputCallback() {
-            @Override
-            public void onOutput(String line) {
-                appendLog("[Bot] " + line);
-            }
-            @Override
-            public void onDone(int exitCode) {
-                appendLog("[Bot] 进程退出 code=" + exitCode);
-            }
+            @Override public void onOutput(String line) { appendLog("[Bot] " + line); }
+            @Override public void onDone(int exitCode) { appendLog("[Bot] 退出 code=" + exitCode); }
         });
     }
 
@@ -182,9 +243,7 @@ public class BotService extends Service {
 
     private void appendLog(String line) {
         logBuffer.append(line).append("\n");
-        if (logBuffer.length() > MAX_LOG_LINES * 100) {
-            logBuffer.delete(0, logBuffer.length() - MAX_LOG_LINES * 50);
-        }
+        if (logBuffer.length() > MAX_LOG_LINES * 100) logBuffer.delete(0, logBuffer.length() - MAX_LOG_LINES * 50);
         Intent intent = new Intent("com.hper.qqbot.LOG_UPDATE");
         intent.putExtra(EXTRA_LOG, logBuffer.toString());
         sendBroadcast(intent);
@@ -198,14 +257,11 @@ public class BotService extends Service {
     private Notification buildNotification(String text) {
         Intent mainIntent = new Intent(this, MainActivity.class);
         PendingIntent pi = PendingIntent.getActivity(this, 0, mainIntent, PendingIntent.FLAG_IMMUTABLE);
-
         Intent stopIntent = new Intent(this, BotService.class);
         stopIntent.setAction(ACTION_STOP);
         PendingIntent stopPi = PendingIntent.getService(this, 1, stopIntent, PendingIntent.FLAG_IMMUTABLE);
-
         return new NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("QQ Bot")
-            .setContentText(text)
+            .setContentTitle("QQ Bot").setContentText(text)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentIntent(pi)
             .addAction(android.R.drawable.ic_media_pause, "停止", stopPi)
@@ -216,13 +272,6 @@ public class BotService extends Service {
         getSystemService(NotificationManager.class).notify(NOTIFICATION_ID, buildNotification(text));
     }
 
-    @Override
-    public IBinder onBind(Intent intent) { return null; }
-
-    @Override
-    public void onDestroy() {
-        stopBot();
-        executor.shutdownNow();
-        super.onDestroy();
-    }
+    @Override public IBinder onBind(Intent intent) { return null; }
+    @Override public void onDestroy() { stopBot(); executor.shutdownNow(); super.onDestroy(); }
 }
