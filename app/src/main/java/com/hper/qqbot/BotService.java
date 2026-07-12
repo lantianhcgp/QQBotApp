@@ -13,8 +13,8 @@ public class BotService extends Service {
     private static final String CHANNEL_ID = "bot_channel";
     private static final int NOTIFICATION_ID = 1;
 
-    private Process lagrangeProcess;
-    private Process aiBotProcess;
+    private java.lang.Process lagrangeProcess;
+    private java.lang.Process aiBotProcess;
     private final ExecutorService executor = Executors.newFixedThreadPool(2);
     private final StringBuilder logBuffer = new StringBuilder();
     private static final int MAX_LOG_LINES = 500;
