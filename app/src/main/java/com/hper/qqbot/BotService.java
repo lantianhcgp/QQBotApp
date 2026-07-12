@@ -1,3 +1,4 @@
+import java.lang.Process;
 package com.hper.qqbot;
 
 import android.app.*;
@@ -16,7 +17,7 @@ public class BotService extends Service {
     private static final String CHANNEL_ID = "bot_channel";
     private static final int NOTIFICATION_ID = 1;
 
-    private java.lang.Process lagrangeProcess;
+    private Process lagrangeProcess;
     private final ExecutorService executor = Executors.newFixedThreadPool(2);
     private final StringBuilder logBuffer = new StringBuilder();
     private static final int MAX_LOG_LINES = 500;
@@ -209,23 +210,16 @@ public class BotService extends Service {
         // 启动 HTTP 服务器接收 Lagrange 的 WebHook
         executor.execute(() -> {
             try {
-                com.sun.net.httpserver.HttpServer server = com.sun.net.httpserver.HttpServer.create(
-                    new java.net.InetSocketAddress(3001), 0);
-                server.createContext("/webhook", exchange -> {
+                SimpleHttpServer server = new SimpleHttpServer(3001);
+                server.start((body, callback) -> {
                     try {
-                        byte[] body = exchange.getRequestBody().readAllBytes();
-                        String json = new String(body);
-                        handleWebhook(json);
-                        byte[] resp = "{\"status\":\"ok\"}".getBytes();
-                        exchange.sendResponseHeaders(200, resp.length);
-                        exchange.getResponseBody().write(resp);
-                        exchange.getResponseBody().close();
+                        handleWebhook(body);
+                        callback.respond(200, "{\"status\":\"ok\"}");
                     } catch (Exception e) {
                         appendLog("[Bot] WebHook 错误: " + e.getMessage());
+                        callback.respond(500, "{\"error\":\"" + e.getMessage() + "\"}");
                     }
                 });
-                server.setExecutor(Executors.newSingleThreadExecutor());
-                server.start();
                 appendLog("🤖 AI Bot 监听 http://0.0.0.0:3001/webhook");
             } catch (Exception e) {
                 appendLog("❌ AI Bot 启动失败: " + e.getMessage());
