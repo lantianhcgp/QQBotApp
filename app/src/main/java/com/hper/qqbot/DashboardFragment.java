@@ -69,7 +69,7 @@ public class DashboardFragment extends Fragment {
     private void startBot() {
         Intent intent = new Intent(requireContext(), BotService.class);
         intent.setAction(BotService.ACTION_START);
-        ContextCompat.startForegroundService(requireContext(), intent);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) { requireContext().startForegroundService(intent); } else { requireContext().startService(intent); }
         updateUI(true);
     }
 
