@@ -174,7 +174,7 @@ public class BotService extends Service {
         cmd.add(dotnetBin);
         cmd.add("Lagrange.Milky.dll");
 
-        // extraction done
+        ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.directory(new File(lagrangeDir));
         Map<String, String> env = pb.environment();
         env.put("DOTNET_ROOT", runtimeDir);
@@ -182,7 +182,6 @@ public class BotService extends Service {
         env.put("LD_LIBRARY_PATH", libPath);
         env.put("PATH", runtimeDir + "/bin:" + System.getenv("PATH"));
 
-        // removed
         lagrangeProcess = pb.start();
 
         new Thread(() -> {
