@@ -129,6 +129,14 @@ public class BotService extends Service {
             TarUtils.extractTarGz(zipFile, new File(runtimeDir));
             zipFile.delete();
 
+            // Debug: check what was extracted
+            File dotnetFile = new File(runtimeDir, "dotnet");
+            appendLog("📦 解压后检查: dotnet 文件存在=" + dotnetFile.exists() + ", 可执行=" + dotnetFile.canExecute() + ", 大小=" + dotnetFile.length());
+            File[] files = new File(runtimeDir).listFiles();
+            if (files != null) {
+                for (File f2 : files) appendLog("  📄 " + f2.getName() + " (" + f2.length() + " bytes)");
+            }
+
             new File(runtimeDir, "dotnet").setExecutable(true);
             new File(marker).createNewFile();
             appendLog("✅ .NET 运行时就绪");
