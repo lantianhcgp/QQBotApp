@@ -13,14 +13,13 @@ public class BotService extends Service {
     private static final String CHANNEL_ID = "bot_channel";
     private static final int NOTIFICATION_ID = 1;
 
-    private java.lang.Process lagrangeProcess;
-    private java.lang.Process aiBotProcess;
+    private Process lagrangeProcess;
+    private Process aiBotProcess;
     private final ExecutorService executor = Executors.newFixedThreadPool(2);
     private final StringBuilder logBuffer = new StringBuilder();
     private static final int MAX_LOG_LINES = 500;
     private boolean isRunning = false;
 
-    private String appDataDir;
     private String homeDir;
 
     public static final String ACTION_START = "com.hper.qqbot.START";
@@ -28,12 +27,43 @@ public class BotService extends Service {
     public static final String ACTION_GET_LOG = "com.hper.qqbot.GET_LOG";
     public static final String EXTRA_LOG = "log";
 
+    private static String findShell() {
+        String[] shells = {"/system/bin/sh", "/bin/sh", "/data/data/com.termux/files/usr/bin/sh"};
+        for (String s : shells) {
+            if (new File(s).exists()) return s;
+        }
+        return "sh";
+    }
+
+    private static String findDotnet(String homeDir) {
+        String[] paths = {
+            homeDir + "/.dotnet/dotnet",
+            "/data/data/com.termux/files/usr/lib/dotnet/dotnet",
+            "dotnet"
+        };
+        for (String p : paths) {
+            if (new File(p).exists()) return p;
+        }
+        return "dotnet";
+    }
+
+    private static String findPython(String homeDir) {
+        String[] paths = {
+            homeDir + "/.python/bin/python3",
+            "/data/data/com.termux/files/usr/bin/python3",
+            "python3"
+        };
+        for (String p : paths) {
+            if (new File(p).exists()) return p;
+        }
+        return "python3";
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
-        appDataDir = getFilesDir().getAbsolutePath();
-        homeDir = Environment.getExternalStorageDirectory().getAbsolutePath() + "/QQBotData";
-        new File(homeDir).mkdirs();
+        homeDir = Environment.getExternalStorageDirectory().getAbsolutePath();
+        new File(homeDir + "/QQBotData/lagrange").mkdirs();
         createNotificationChannel();
     }
 
@@ -66,6 +96,7 @@ public class BotService extends Service {
         executor.execute(() -> {
             try {
                 appendLog("🚀 正在启动服务...");
+                appendLog("📂 工作目录: " + homeDir + "/QQBotData");
                 startLagrange();
                 Thread.sleep(6000);
                 startAiBot();
@@ -73,20 +104,23 @@ public class BotService extends Service {
                 updateNotification("Bot 运行中");
             } catch (Exception e) {
                 appendLog("❌ 启动失败: " + e.getMessage());
+                Log.e(TAG, "Start failed", e);
                 isRunning = false;
             }
         });
     }
 
     private void startLagrange() throws IOException {
-        String lagrangeDir = homeDir + "/lagrange";
+        String lagrangeDir = homeDir + "/QQBotData/lagrange";
+        String shell = findShell();
+        String dotnet = findDotnet(homeDir);
         appendLog("📦 启动 Lagrange.Milky...");
+        appendLog("🔗 Shell: " + shell);
+        appendLog("🔗 Dotnet: " + dotnet);
 
-        String cmd = "cd " + lagrangeDir + " && " +
-            "export DOTNET_ROOT=" + appDataDir + "/dotnet && " +
-            appDataDir + "/dotnet/dotnet Lagrange.Milky.dll 2>&1";
+        String cmd = "cd '" + lagrangeDir + "' && '" + dotnet + "' Lagrange.Milky.dll 2>&1";
 
-        lagrangeProcess = ShellExecutor.exec(cmd, lagrangeDir, new ShellExecutor.OutputCallback() {
+        lagrangeProcess = ShellExecutor.exec(cmd, lagrangeDir, shell, new ShellExecutor.OutputCallback() {
             @Override
             public void onOutput(String line) {
                 appendLog("[Lagrange] " + line);
@@ -99,14 +133,16 @@ public class BotService extends Service {
     }
 
     private void startAiBot() throws IOException {
-        String botScript = homeDir + "/lagrange-ai-bot.py";
+        String botScript = homeDir + "/QQBotData/lagrange-ai-bot.py";
+        String shell = findShell();
+        String python = findPython(homeDir);
         appendLog("🤖 启动 AI Bot...");
+        appendLog("🔗 Python: " + python);
 
-        String cmd = "cd " + homeDir + " && " +
-            "export PYTHONPATH=" + appDataDir + "/python/lib/python3.11/site-packages && " +
-            appDataDir + "/python/bin/python3 -u " + botScript + " 2>&1";
+        String workDir = homeDir + "/QQBotData";
+        String cmd = "cd '" + workDir + "' && '" + python + "' -u '" + botScript + "' 2>&1";
 
-        aiBotProcess = ShellExecutor.exec(cmd, homeDir, new ShellExecutor.OutputCallback() {
+        aiBotProcess = ShellExecutor.exec(cmd, workDir, shell, new ShellExecutor.OutputCallback() {
             @Override
             public void onOutput(String line) {
                 appendLog("[Bot] " + line);

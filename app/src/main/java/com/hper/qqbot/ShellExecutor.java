@@ -9,8 +9,8 @@ public class ShellExecutor {
         void onDone(int exitCode);
     }
 
-    public static Process exec(String command, String workDir, OutputCallback callback) throws IOException {
-        ProcessBuilder pb = new ProcessBuilder("sh", "-c", command);
+    public static Process exec(String command, String workDir, String shell, OutputCallback callback) throws IOException {
+        ProcessBuilder pb = new ProcessBuilder(shell, "-c", command);
         pb.directory(new File(workDir));
         pb.redirectErrorStream(true);
 
@@ -30,8 +30,12 @@ public class ShellExecutor {
         return process;
     }
 
-    public static String execSync(String command, String workDir) throws IOException, InterruptedException {
-        ProcessBuilder pb = new ProcessBuilder("sh", "-c", command);
+    public static Process exec(String command, String workDir, OutputCallback callback) throws IOException {
+        return exec(command, workDir, "sh", callback);
+    }
+
+    public static String execSync(String command, String workDir, String shell) throws IOException, InterruptedException {
+        ProcessBuilder pb = new ProcessBuilder(shell, "-c", command);
         pb.directory(new File(workDir));
         pb.redirectErrorStream(true);
 
