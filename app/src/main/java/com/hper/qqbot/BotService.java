@@ -21,49 +21,58 @@ public class BotService extends Service {
     private boolean isRunning = false;
 
     private String homeDir;
+    private String termuxHome;
+    private String termuxBin;
+    private String shell;
+    private String dotnet;
+    private String python;
 
     public static final String ACTION_START = "com.hper.qqbot.START";
     public static final String ACTION_STOP = "com.hper.qqbot.STOP";
     public static final String ACTION_GET_LOG = "com.hper.qqbot.GET_LOG";
     public static final String EXTRA_LOG = "log";
 
-    private static String findShell() {
-        String[] shells = {"/system/bin/sh", "/bin/sh", "/data/data/com.termux/files/usr/bin/sh"};
-        for (String s : shells) {
-            if (new File(s).exists()) return s;
-        }
-        return "sh";
-    }
+    private void detectTermux() {
+        termuxHome = "/data/data/com.termux/files/home";
+        termuxBin = "/data/data/com.termux/files/usr/bin";
 
-    private static String findDotnet(String homeDir) {
-        String[] paths = {
-            homeDir + "/.dotnet/dotnet",
-            "/data/data/com.termux/files/usr/lib/dotnet/dotnet",
-            "dotnet"
+        // 检测 shell
+        String[] shellPaths = {
+            termuxBin + "/sh",
+            "/data/data/com.termux/files/usr/bin/sh",
+            "/system/bin/sh"
         };
-        for (String p : paths) {
-            if (new File(p).exists()) return p;
+        shell = "sh";
+        for (String p : shellPaths) {
+            if (new File(p).exists()) { shell = p; break; }
         }
-        return "dotnet";
-    }
 
-    private static String findPython(String homeDir) {
-        String[] paths = {
-            homeDir + "/.python/bin/python3",
-            "/data/data/com.termux/files/usr/bin/python3",
-            "python3"
+        // 检测 dotnet
+        String[] dotnetPaths = {
+            termuxBin + "/dotnet",
+            "/data/data/com.termux/files/usr/lib/dotnet/dotnet"
         };
-        for (String p : paths) {
-            if (new File(p).exists()) return p;
+        dotnet = "dotnet";
+        for (String p : dotnetPaths) {
+            if (new File(p).exists()) { dotnet = p; break; }
         }
-        return "python3";
+
+        // 检测 python
+        String[] pythonPaths = {
+            termuxBin + "/python3",
+            "/data/data/com.termux/files/usr/bin/python3"
+        };
+        python = "python3";
+        for (String p : pythonPaths) {
+            if (new File(p).exists()) { python = p; break; }
+        }
     }
 
     @Override
     public void onCreate() {
         super.onCreate();
         homeDir = Environment.getExternalStorageDirectory().getAbsolutePath();
-        new File(homeDir + "/QQBotData/lagrange").mkdirs();
+        detectTermux();
         createNotificationChannel();
     }
 
@@ -96,7 +105,15 @@ public class BotService extends Service {
         executor.execute(() -> {
             try {
                 appendLog("🚀 正在启动服务...");
-                appendLog("📂 工作目录: " + homeDir + "/QQBotData");
+                appendLog("📂 数据目录: " + homeDir + "/QQBotData");
+                appendLog("🔗 Shell: " + shell);
+                appendLog("🔗 Dotnet: " + dotnet);
+                appendLog("🔗 Python: " + python);
+                appendLog("🔗 Termux Home: " + termuxHome);
+
+                // 创建目录
+                new File(homeDir + "/QQBotData/lagrange").mkdirs();
+
                 startLagrange();
                 Thread.sleep(6000);
                 startAiBot();
@@ -112,13 +129,14 @@ public class BotService extends Service {
 
     private void startLagrange() throws IOException {
         String lagrangeDir = homeDir + "/QQBotData/lagrange";
-        String shell = findShell();
-        String dotnet = findDotnet(homeDir);
         appendLog("📦 启动 Lagrange.Milky...");
-        appendLog("🔗 Shell: " + shell);
-        appendLog("🔗 Dotnet: " + dotnet);
 
-        String cmd = "cd '" + lagrangeDir + "' && '" + dotnet + "' Lagrange.Milky.dll 2>&1";
+        // 设置 TERMUX 环境变量
+        String envSetup = "export HOME='" + termuxHome + "' && " +
+            "export PATH='" + termuxBin + ":$PATH' && " +
+            "export LD_LIBRARY_PATH='" + termuxBin + "/../lib:$LD_LIBRARY_PATH' && ";
+
+        String cmd = envSetup + "cd '" + lagrangeDir + "' && '" + dotnet + "' Lagrange.Milky.dll 2>&1";
 
         lagrangeProcess = ShellExecutor.exec(cmd, lagrangeDir, shell, new ShellExecutor.OutputCallback() {
             @Override
@@ -134,13 +152,13 @@ public class BotService extends Service {
 
     private void startAiBot() throws IOException {
         String botScript = homeDir + "/QQBotData/lagrange-ai-bot.py";
-        String shell = findShell();
-        String python = findPython(homeDir);
-        appendLog("🤖 启动 AI Bot...");
-        appendLog("🔗 Python: " + python);
-
         String workDir = homeDir + "/QQBotData";
-        String cmd = "cd '" + workDir + "' && '" + python + "' -u '" + botScript + "' 2>&1";
+        appendLog("🤖 启动 AI Bot...");
+
+        String envSetup = "export HOME='" + termuxHome + "' && " +
+            "export PATH='" + termuxBin + ":$PATH' && ";
+
+        String cmd = envSetup + "cd '" + workDir + "' && '" + python + "' -u '" + botScript + "' 2>&1";
 
         aiBotProcess = ShellExecutor.exec(cmd, workDir, shell, new ShellExecutor.OutputCallback() {
             @Override
