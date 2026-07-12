@@ -118,6 +118,11 @@ public class BotService extends Service {
         });
     }
 
+    private String findShell() {
+        String[] paths = {"/system/bin/sh", "/sbin/sh", "/data/data/com.termux/files/usr/bin/sh"};
+        for (String p : paths) { if (new File(p).exists()) return p; }
+        return "/system/bin/sh";
+    }
     private boolean ensureDotnet() {
         String marker = runtimeDir + "/.dotnet_ready";
         if (new File(marker).exists()) {
@@ -138,7 +143,7 @@ public class BotService extends Service {
             // 使用系统 tar 解压
             new File(runtimeDir).mkdirs();
             String cmd = "tar -xzf '" + zipFile.getAbsolutePath() + "' -C '" + runtimeDir + "'";
-            ProcessBuilder pb = new ProcessBuilder("/system/bin/sh", "-c", cmd);
+            ProcessBuilder pb = new ProcessBuilder(findShell(), "-c", cmd);
             pb.redirectErrorStream(true);
             java.lang.Process p = pb.start();
             BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
@@ -175,8 +180,8 @@ public class BotService extends Service {
             fos.write(buf, 0, len);
             downloaded += len;
             if (totalLen > 0) {
-                int pct = downloaded * 100 / totalLen;
-                if (pct % 10 == 0) appendLog("⬇️ 下载进度: " + pct + "%");
+                int pct = (int)((long)downloaded * 100 / totalLen);
+                if (pct % 20 == 0) appendLog("⬇️ 下载进度: " + pct + "%");
             }
         }
         fos.close();
@@ -194,7 +199,7 @@ public class BotService extends Service {
             "cd '" + lagrangeDir + "' && " +
             "'" + dotnetBin + "' Lagrange.Milky.dll 2>&1";
 
-        lagrangeProcess = ShellExecutor.exec(cmd, lagrangeDir, "/system/bin/sh", new ShellExecutor.OutputCallback() {
+        lagrangeProcess = ShellExecutor.exec(cmd, lagrangeDir, findShell(), new ShellExecutor.OutputCallback() {
             @Override public void onOutput(String line) { appendLog("[Lagrange] " + line); }
             @Override public void onDone(int exitCode) { appendLog("[Lagrange] 退出 code=" + exitCode); }
         });
