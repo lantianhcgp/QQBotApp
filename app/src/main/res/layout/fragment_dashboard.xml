@@ -10,17 +10,17 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="20dp">
 
-        <!-- 状态指示器 -->
+        <!-- 状态卡片 -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardCornerRadius="28dp"
-            app:cardElevation="0dp"
-            app:strokeWidth="1dp"
-            app:strokeColor="?attr/colorOutline"
-            android:layout_marginBottom="16dp">
+            app:cardCornerRadius="24dp"
+            app:cardElevation="2dp"
+            app:strokeWidth="0dp"
+            android:layout_marginBottom="20dp"
+            android:backgroundTint="?attr/colorPrimaryContainer">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -31,39 +31,40 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/dashboard_title"
-                    android:textAppearance="?attr/textAppearanceHeadlineSmall"
-                    android:textColor="?attr/colorOnSurface"/>
+                    android:text="服务控制"
+                    android:textSize="28sp"
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorOnPrimaryContainer"/>
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:layout_marginTop="12dp">
+                    android:layout_marginTop="16dp">
 
                     <View
                         android:id="@+id/statusDot"
-                        android:layout_width="12dp"
-                        android:layout_height="12dp"
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
                         android:background="@drawable/status_dot"
-                        android:layout_marginEnd="8dp"/>
+                        android:layout_marginEnd="12dp"/>
 
                     <TextView
                         android:id="@+id/tvStatus"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/status_stopped"
-                        android:textAppearance="?attr/textAppearanceTitleMedium"
-                        android:textColor="?attr/colorOnSurface"/>
+                        android:text="已停止"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:textColor="?attr/colorOnPrimaryContainer"/>
                 </LinearLayout>
 
-                <!-- 控制按钮 -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:layout_marginTop="20dp"
+                    android:layout_marginTop="24dp"
                     android:gravity="center">
 
                     <com.google.android.material.button.MaterialButton
@@ -71,34 +72,36 @@
                         android:layout_width="0dp"
                         android:layout_height="56dp"
                         android:layout_weight="1"
-                        android:text="@string/btn_start"
+                        android:text="启动服务"
+                        android:textSize="16sp"
                         android:textAllCaps="false"
                         app:cornerRadius="28dp"
-                        android:layout_marginEnd="8dp"
-                        style="@style/Widget.Material3.Button"/>
+                        android:layout_marginEnd="10dp"/>
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnStop"
                         android:layout_width="0dp"
                         android:layout_height="56dp"
                         android:layout_weight="1"
-                        android:text="@string/btn_stop"
+                        android:text="停止服务"
+                        android:textSize="16sp"
                         android:textAllCaps="false"
                         app:cornerRadius="28dp"
-                        android:layout_marginStart="8dp"
+                        android:layout_marginStart="10dp"
                         android:enabled="false"
-                        style="@style/Widget.Material3.Button.TonalButton"/>
+                        style="@style/Widget.Material3.Button.OutlinedButton"/>
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- 服务组件卡片 -->
+        <!-- 服务组件 -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="服务组件"
-            android:textAppearance="?attr/textAppearanceTitleMedium"
-            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="?attr/colorOnSurface"
             android:layout_marginBottom="12dp"
             android:layout_marginStart="4dp"/>
 
@@ -106,18 +109,15 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginBottom="8dp">
+            android:layout_marginBottom="12dp">
 
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardLagrange"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginEnd="6dp"
+                android:layout_marginEnd="8dp"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="1dp"
-                app:strokeColor="?attr/colorOutline">
+                app:cardElevation="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -128,36 +128,34 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="🔵"
-                        android:textSize="24sp"/>
+                        android:text="🔗"
+                        android:textSize="28sp"/>
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/card_lagrange"
-                        android:textAppearance="?attr/textAppearanceTitleSmall"
+                        android:text="Lagrange"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
                         android:textColor="?attr/colorOnSurface"
                         android:layout_marginTop="8dp"/>
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/card_lagrange_desc"
-                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:text="QQ 协议端"
+                        android:textSize="14sp"
                         android:textColor="?attr/colorOnSurfaceVariant"/>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardAiBot"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginStart="6dp"
+                android:layout_marginStart="8dp"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="1dp"
-                app:strokeColor="?attr/colorOutline">
+                app:cardElevation="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -168,22 +166,23 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="🟢"
-                        android:textSize="24sp"/>
+                        android:text="🤖"
+                        android:textSize="28sp"/>
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/card_aibot"
-                        android:textAppearance="?attr/textAppearanceTitleSmall"
+                        android:text="AI Bot"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
                         android:textColor="?attr/colorOnSurface"
                         android:layout_marginTop="8dp"/>
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/card_aibot_desc"
-                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:text="智能对话引擎"
+                        android:textSize="14sp"
                         android:textColor="?attr/colorOnSurfaceVariant"/>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -193,10 +192,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:cardCornerRadius="16dp"
-            app:cardElevation="0dp"
-            app:strokeWidth="1dp"
-            app:strokeColor="?attr/colorOutline"
-            android:layout_marginBottom="8dp">
+            app:cardElevation="1dp"
+            android:layout_marginBottom="16dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -209,7 +206,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="🔍"
-                    android:textSize="24sp"/>
+                    android:textSize="28sp"/>
 
                 <LinearLayout
                     android:layout_width="wrap_content"
@@ -220,29 +217,27 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/card_exa"
-                        android:textAppearance="?attr/textAppearanceTitleSmall"
+                        android:text="Exa Search"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
                         android:textColor="?attr/colorOnSurface"/>
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/card_exa_desc"
-                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:text="联网搜索能力"
+                        android:textSize="14sp"
                         android:textColor="?attr/colorOnSurfaceVariant"/>
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- 最近日志预览 -->
+        <!-- 最近日志 -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:cardCornerRadius="16dp"
-            app:cardElevation="0dp"
-            app:strokeWidth="1dp"
-            app:strokeColor="?attr/colorOutline"
-            android:layout_marginTop="16dp"
+            app:cardElevation="1dp"
             android:layout_marginBottom="80dp">
 
             <LinearLayout
@@ -255,7 +250,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="最近日志"
-                    android:textAppearance="?attr/textAppearanceTitleSmall"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
                     android:textColor="?attr/colorOnSurface"
                     android:layout_marginBottom="8dp"/>
 
@@ -263,11 +259,12 @@
                     android:id="@+id/tvRecentLog"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/logs_empty"
+                    android:text="等待启动…"
                     android:fontFamily="monospace"
-                    android:textSize="12sp"
+                    android:textSize="13sp"
                     android:textColor="?attr/colorOnSurfaceVariant"
                     android:maxLines="8"
+                    android:lineSpacingExtra="4dp"
                     android:ellipsize="end"/>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

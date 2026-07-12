@@ -5,30 +5,32 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="20dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:layout_marginBottom="12dp">
+        android:layout_marginBottom="16dp">
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/logs_title"
-            android:textAppearance="?attr/textAppearanceTitleLarge"
+            android:text="运行日志"
+            android:textSize="28sp"
+            android:textStyle="bold"
             android:textColor="?attr/colorOnSurface"/>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnClearLog"
             android:layout_width="wrap_content"
-            android:layout_height="40dp"
-            android:text="@string/logs_clear"
+            android:layout_height="44dp"
+            android:text="清除"
+            android:textSize="14sp"
             android:textAllCaps="false"
-            app:cornerRadius="20dp"
+            app:cornerRadius="22dp"
             style="@style/Widget.Material3.Button.TextButton"/>
     </LinearLayout>
 
@@ -37,26 +39,24 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         app:cardCornerRadius="16dp"
-        app:cardElevation="0dp"
-        app:strokeWidth="1dp"
-        app:strokeColor="?attr/colorOutline">
+        app:cardElevation="2dp"
+        android:backgroundTint="#1A1C1E">
 
         <ScrollView
             android:id="@+id/scrollView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@color/log_background"
-            android:padding="12dp">
+            android:padding="16dp">
 
             <TextView
                 android:id="@+id/tvLog"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/logs_empty"
+                android:text="等待启动…"
                 android:fontFamily="monospace"
-                android:textSize="12sp"
-                android:textColor="@color/log_text"
-                android:lineSpacingExtra="2dp"/>
+                android:textSize="14sp"
+                android:textColor="#4CAF50"
+                android:lineSpacingExtra="4dp"/>
         </ScrollView>
     </com.google.android.material.card.MaterialCardView>
 </LinearLayout>
